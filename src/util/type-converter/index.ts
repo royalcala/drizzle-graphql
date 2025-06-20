@@ -13,6 +13,7 @@ import {
 	GraphQLObjectType,
 	GraphQLScalarType,
 	GraphQLString,
+	Kind,
 } from 'graphql';
 
 import type { Column } from 'drizzle-orm';
@@ -55,6 +56,57 @@ const geoXyInputType = new GraphQLInputObjectType({
 	},
 });
 
+// Add GraphQLJSON scalar type for better JSON handling
+const GraphQLJSON = new GraphQLScalarType({
+	name: 'JSON',
+	description: 'JSON custom scalar type',
+	serialize(value) {
+		// If it's already parsed, return as-is
+		if (typeof value === 'object') return value;
+		// If it's a string, try to parse it
+		if (typeof value === 'string') {
+			try {
+				return JSON.parse(value);
+			} catch {
+				return value;
+			}
+		}
+		return value;
+	},
+	parseValue(value) {
+		if (typeof value === 'string') {
+			try {
+				return JSON.parse(value);
+			} catch {
+				return value;
+			}
+		}
+		return value;
+	},
+	parseLiteral(ast) {
+		if (ast.kind === Kind.STRING && 'value' in ast) {
+			try {
+				return JSON.parse(ast.value);
+			} catch {
+				return ast.value;
+			}
+		}
+		return null;
+	},
+});
+
+// Helper function to detect if a column name suggests it's an array
+const isLikelyArrayColumn = (columnName: string): boolean => {
+	const arrayIndicators = [
+		'urls', 'ids', 'tags', 'items', 'values', 'entries', 'list',
+		'array', 'collection', 'set', 'group', 'batch'
+	];
+	const lowerName = columnName.toLowerCase();
+	return arrayIndicators.some(indicator => 
+		lowerName.includes(indicator) || lowerName.endsWith('s')
+	);
+};
+
 const columnToGraphQLCore = (
 	column: Column,
 	columnName: string,
@@ -65,12 +117,28 @@ const columnToGraphQLCore = (
 		case 'boolean':
 			return { type: GraphQLBoolean, description: 'Boolean' };
 		case 'json':
-			return column.columnType === 'PgGeometryObject'
-				? {
+			if (column.columnType === 'PgGeometryObject') {
+				return {
 					type: isInput ? geoXyInputType : geoXyType,
 					description: 'Geometry points XY',
+				};
+			}
+			
+			// Enhanced SQLite JSON handling
+			if (column.columnType === 'SQLiteTextJson') {
+				// Check if column name suggests it's an array
+				if (isLikelyArrayColumn(columnName)) {
+					return {
+						type: new GraphQLList(GraphQLString),
+						description: 'Array of strings (JSON)',
+					};
 				}
-				: { type: GraphQLString, description: 'JSON' };
+				
+				// For other JSON columns, use the JSON scalar
+				return { type: GraphQLJSON, description: 'JSON object' };
+			}
+			
+			return { type: GraphQLString, description: 'JSON' };
 		case 'date':
 			return { type: GraphQLString, description: 'Date' };
 		case 'string':

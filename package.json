@@ -93,6 +93,7 @@
 	},
 	"homepage": "https://orm.drizzle.team/docs/graphql",
 	"dependencies": {
+		"better-sqlite3": "^11.10.0",
 		"graphql-parse-resolve-info": "^4.13.0"
 	},
 	"peerDependencies": {
