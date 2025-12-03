@@ -1,5 +1,5 @@
 {
-  "name": "drizzle-graphql",
+  "name": "@roy.alcala/drizzle-graphql",
   "type": "module",
   "author": "Drizzle Team",
   "version": "0.8.6",
@@ -9,6 +9,7 @@
     "b": "pnpm build",
     "pack": "(cd dist && npm pack --pack-destination ..) && rm -f package.tgz && mv *.tgz package.tgz",
     "publish": "npm publish package.tgz",
+    "build:pack:publish": "pnpm build && pnpm pack && pnpm publish",
     "test": "vitest run",
     "server-test:pg": "DB_TYPE=pg tsx watch server/server.ts",
     "server-test:mysql": "DB_TYPE=mysql tsx watch server/server.ts",
