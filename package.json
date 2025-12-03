@@ -1,14 +1,14 @@
 {
   "name": "@roy.alcala/drizzle-graphql",
   "type": "module",
-  "author": "Drizzle Team",
+  "author": "Drizzle Team, Roy Alcala",
   "version": "0.8.6",
   "description": "Automatically generate GraphQL schema or customizable schema config fields from Drizzle ORM schema",
   "scripts": {
     "build": "pnpm tsx scripts/build.ts",
     "b": "pnpm build",
     "pack": "(cd dist && npm pack --pack-destination ..) && rm -f package.tgz && mv *.tgz package.tgz",
-    "publish": "npm publish package.tgz",
+    "publish": "npm publish package.tgz --no-provenance",
     "build:pack:publish": "pnpm build && pnpm pack && pnpm publish",
     "test": "vitest run",
     "server-test:pg": "DB_TYPE=pg tsx watch server/server.ts",
@@ -86,11 +86,11 @@
   "types": "./index.d.ts",
   "sideEffects": false,
   "publishConfig": {
-    "provenance": true
+    "provenance": false
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/drizzle-team/drizzle-graphql.git"
+    "url": "git+https://github.com/roy.alcala/drizzle-graphql-fork.git"
   },
   "homepage": "https://orm.drizzle.team/docs/graphql",
   "dependencies": {
