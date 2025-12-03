@@ -2,7 +2,7 @@
   "name": "drizzle-graphql-plus",
   "type": "module",
   "author": "alcala.rao@gmail.com (Roy Alcala)",
-  "version": "0.8.6",
+  "version": "0.8.7",
   "description": "Automatically generate GraphQL schema or customizable schema config fields from Drizzle ORM schema",
   "scripts": {
     "build": "pnpm tsx scripts/build.ts",
@@ -91,9 +91,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/roy.alcala/drizzle-graphql-fork.git"
+    "url": "git+https://github.com/roy.alcala/drizzle-graphql-plus.git"
   },
-  "homepage": "https://orm.drizzle.team/docs/graphql",
+  "homepage": "https://github.com/royalcala/drizzle-graphql-plus",
   "dependencies": {
     "graphql-parse-resolve-info": "^4.13.0"
   },
