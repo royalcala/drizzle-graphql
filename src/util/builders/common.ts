@@ -86,14 +86,10 @@ export const extractSelectedColumnsFromTree = (
       for (const [typeName, typeFields] of Object.entries(
         fieldData.fieldsByTypeName
       )) {
-        // Extract fields from interface types (they end with "Fields")
-        if (typeName.endsWith("Fields")) {
-          for (const [subFieldName, subFieldData] of Object.entries(
-            typeFields
-          )) {
-            if (tableColumns[subFieldData.name]) {
-              selectedColumns.push([subFieldData.name, true]);
-            }
+        // Extract fields from all types (interfaces and concrete types)
+        for (const [subFieldName, subFieldData] of Object.entries(typeFields)) {
+          if (tableColumns[subFieldData.name]) {
+            selectedColumns.push([subFieldData.name, true]);
           }
         }
       }
@@ -142,17 +138,13 @@ export const extractSelectedColumnsFromTreeSQLFormat = <
       for (const [typeName, typeFields] of Object.entries(
         fieldData.fieldsByTypeName
       )) {
-        // Extract fields from interface types (they end with "Fields")
-        if (typeName.endsWith("Fields")) {
-          for (const [subFieldName, subFieldData] of Object.entries(
-            typeFields
-          )) {
-            if (tableColumns[subFieldData.name]) {
-              selectedColumns.push([
-                subFieldData.name,
-                tableColumns[subFieldData.name]!,
-              ]);
-            }
+        // Extract fields from all types (interfaces and concrete types)
+        for (const [subFieldName, subFieldData] of Object.entries(typeFields)) {
+          if (tableColumns[subFieldData.name]) {
+            selectedColumns.push([
+              subFieldData.name,
+              tableColumns[subFieldData.name]!,
+            ]);
           }
         }
       }
