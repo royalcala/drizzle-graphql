@@ -74,9 +74,30 @@ export const extractSelectedColumnsFromTree = (
   const selectedColumns: SelectedColumnsRaw = [];
 
   for (const [fieldName, fieldData] of treeEntries) {
-    if (!tableColumns[fieldData.name]) continue;
+    // Check if this field exists in the table columns
+    if (tableColumns[fieldData.name]) {
+      selectedColumns.push([fieldData.name, true]);
+      continue;
+    }
 
-    selectedColumns.push([fieldData.name, true]);
+    // If not found directly, check if there are fields from interface fragments
+    // Interface fragments store their fields in fieldsByTypeName
+    if (fieldData.fieldsByTypeName) {
+      for (const [typeName, typeFields] of Object.entries(
+        fieldData.fieldsByTypeName
+      )) {
+        // Extract fields from interface types (they end with "Fields")
+        if (typeName.endsWith("Fields")) {
+          for (const [subFieldName, subFieldData] of Object.entries(
+            typeFields
+          )) {
+            if (tableColumns[subFieldData.name]) {
+              selectedColumns.push([subFieldData.name, true]);
+            }
+          }
+        }
+      }
+    }
   }
 
   if (!selectedColumns.length) {
@@ -89,6 +110,7 @@ export const extractSelectedColumnsFromTree = (
     selectedColumns.push([columnName, true]);
   }
 
+  // Remove duplicates by converting to object and back
   return Object.fromEntries(selectedColumns);
 };
 
@@ -108,9 +130,33 @@ export const extractSelectedColumnsFromTreeSQLFormat = <
   const selectedColumns: SelectedSQLColumns = [];
 
   for (const [fieldName, fieldData] of treeEntries) {
-    if (!tableColumns[fieldData.name]) continue;
+    // Check if this field exists in the table columns
+    if (tableColumns[fieldData.name]) {
+      selectedColumns.push([fieldData.name, tableColumns[fieldData.name]!]);
+      continue;
+    }
 
-    selectedColumns.push([fieldData.name, tableColumns[fieldData.name]!]);
+    // If not found directly, check if there are fields from interface fragments
+    // Interface fragments store their fields in fieldsByTypeName
+    if (fieldData.fieldsByTypeName) {
+      for (const [typeName, typeFields] of Object.entries(
+        fieldData.fieldsByTypeName
+      )) {
+        // Extract fields from interface types (they end with "Fields")
+        if (typeName.endsWith("Fields")) {
+          for (const [subFieldName, subFieldData] of Object.entries(
+            typeFields
+          )) {
+            if (tableColumns[subFieldData.name]) {
+              selectedColumns.push([
+                subFieldData.name,
+                tableColumns[subFieldData.name]!,
+              ]);
+            }
+          }
+        }
+      }
+    }
   }
 
   if (!selectedColumns.length) {
@@ -123,6 +169,7 @@ export const extractSelectedColumnsFromTreeSQLFormat = <
     selectedColumns.push([columnName, tableColumns[columnName]!]);
   }
 
+  // Remove duplicates by converting to object and back
   return Object.fromEntries(selectedColumns) as Record<string, TColType>;
 };
 
@@ -350,6 +397,14 @@ const generateTableInterfaceTypeCached = (table: Table, tableName: string) => {
   const interfaceType = new GraphQLInterfaceType({
     name: `${capitalize(tableName)}Fields`,
     fields: tableFields,
+    resolveType(obj) {
+      // Return the concrete type name based on __typename if present
+      if (obj.__typename) {
+        return obj.__typename;
+      }
+      // Fallback: return null to let GraphQL infer from the object types
+      return null;
+    },
   });
 
   interfaceTypeMap.set(table, interfaceType);
