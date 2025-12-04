@@ -2,7 +2,7 @@
   "name": "drizzle-graphql-plus",
   "type": "module",
   "author": "alcala.rao@gmail.com (Roy Alcala)",
-  "version": "0.8.13",
+  "version": "0.8.14",
   "description": "Automatically generate GraphQL schema or customizable schema config fields from Drizzle ORM schema",
   "scripts": {
     "build": "pnpm tsx scripts/build.ts",
@@ -11,6 +11,9 @@
     "publish": "npm publish package.tgz --access public --no-provenance",
     "build:pack:publish": "pnpm build && (cd dist && npm pack --pack-destination ..) && mv drizzle-graphql-plus-*.tgz package.tgz && npm publish package.tgz --access public --no-provenance",
     "test": "vitest run",
+    "test-server:seed": "tsx test-server/seed.ts",
+    "test-server:start": "tsx test-server/server.ts",
+    "test-server": "pnpm test-server:seed && pnpm test-server:start",
     "server-test:pg": "DB_TYPE=pg tsx watch server/server.ts",
     "server-test:mysql": "DB_TYPE=mysql tsx watch server/server.ts",
     "server-test:sqlite": "DB_TYPE=sqlite tsx watch server/server.ts",

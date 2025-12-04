@@ -73,9 +73,22 @@ export const extractSelectedColumnsFromTree = (
   const treeEntries = Object.entries(tree);
   const selectedColumns: SelectedColumnsRaw = [];
 
+  // Debug logging
+  // console.log("=== extractSelectedColumnsFromTree DEBUG ===");
+  // console.log("Tree keys:", Object.keys(tree));
+  // console.log("Table columns:", Object.keys(tableColumns));
+
   for (const [fieldName, fieldData] of treeEntries) {
+    // console.log(`\nProcessing field: ${fieldName}`);
+    // console.log(`  fieldData.name: ${fieldData.name}`);
+    // console.log(
+    //   `  fieldsByTypeName:`,
+    //   Object.keys(fieldData.fieldsByTypeName || {})
+    // );
+
     // Check if this field exists in the table columns
     if (tableColumns[fieldData.name]) {
+      // console.log(`  ✅ Found in tableColumns: ${fieldData.name}`);
       selectedColumns.push([fieldData.name, true]);
       continue;
     }
@@ -86,15 +99,31 @@ export const extractSelectedColumnsFromTree = (
       for (const [typeName, typeFields] of Object.entries(
         fieldData.fieldsByTypeName
       )) {
+        // console.log(`  Checking type: ${typeName}`);
+        // console.log(`    Fields in type:`, Object.keys(typeFields));
         // Extract fields from all types (interfaces and concrete types)
         for (const [subFieldName, subFieldData] of Object.entries(typeFields)) {
+          console.log(
+            `    Checking subField: ${subFieldName}, name: ${subFieldData.name}`
+          );
           if (tableColumns[subFieldData.name]) {
+            // console.log(`    ✅ Found in tableColumns: ${subFieldData.name}`);
             selectedColumns.push([subFieldData.name, true]);
+          } else {
+            // console.log(
+            //   `    ❌ NOT found in tableColumns: ${subFieldData.name}`
+            // );
           }
         }
       }
     }
   }
+
+  // console.log(
+  //   "\nFinal selected columns:",
+  //   selectedColumns.map((c) => c[0])
+  // );
+  // console.log("===================\n");
 
   if (!selectedColumns.length) {
     const columnKeys = Object.entries(tableColumns);
@@ -841,22 +870,31 @@ const extractRelationsParamsInner = (
     const relTypeName = `${
       isInitial ? capitalize(tableName) : typeName
     }${capitalize(relName)}Relation`;
-    const relFieldSelection = Object.values(baseField).find(
+
+    const relationField = Object.values(baseField).find(
       (field) => field.name === relName
-    )?.fieldsByTypeName[relTypeName];
-    if (!relFieldSelection) continue;
+    );
+
+    if (!relationField) continue;
+
+    // Collect fields from all types in fieldsByTypeName (including interface types)
+    const allFields: Record<string, ResolveTree> = {};
+    if (relationField.fieldsByTypeName) {
+      for (const [typeName, typeFields] of Object.entries(
+        relationField.fieldsByTypeName
+      )) {
+        Object.assign(allFields, typeFields);
+      }
+    }
 
     const columns = extractSelectedColumnsFromTree(
-      relFieldSelection,
+      allFields,
       tables[targetTableName]!
     );
 
     const thisRecord: Partial<ProcessedTableSelectArgs> = {};
     thisRecord.columns = columns;
 
-    const relationField = Object.values(baseField).find(
-      (e) => e.name === relName
-    );
     const relationArgs: Partial<TableSelectArgs> | undefined =
       relationField?.args;
 

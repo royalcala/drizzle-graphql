@@ -94,11 +94,16 @@ const generateSelectArray = (
           deep: true,
         }) as ResolveTree;
 
+        // Collect fields from all types in fieldsByTypeName (including interface types)
+        const allFields: Record<string, ResolveTree> = {};
+        if (parsedInfo.fieldsByTypeName) {
+          for (const fields of Object.values(parsedInfo.fieldsByTypeName)) {
+            Object.assign(allFields, fields);
+          }
+        }
+
         const query = queryBase.findMany({
-          columns: extractSelectedColumnsFromTree(
-            parsedInfo.fieldsByTypeName[typeName]!,
-            table
-          ),
+          columns: extractSelectedColumnsFromTree(allFields, table),
           offset,
           limit,
           orderBy: orderBy ? extractOrderBy(table, orderBy) : undefined,
@@ -172,11 +177,16 @@ const generateSelectSingle = (
           deep: true,
         }) as ResolveTree;
 
+        // Collect fields from all types in fieldsByTypeName (including interface types)
+        const allFields: Record<string, ResolveTree> = {};
+        if (parsedInfo.fieldsByTypeName) {
+          for (const fields of Object.values(parsedInfo.fieldsByTypeName)) {
+            Object.assign(allFields, fields);
+          }
+        }
+
         const query = queryBase.findFirst({
-          columns: extractSelectedColumnsFromTree(
-            parsedInfo.fieldsByTypeName[typeName]!,
-            table
-          ),
+          columns: extractSelectedColumnsFromTree(allFields, table),
           offset,
           orderBy: orderBy ? extractOrderBy(table, orderBy) : undefined,
           where: where ? extractFilters(table, tableName, where) : undefined,
