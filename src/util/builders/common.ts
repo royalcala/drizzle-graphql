@@ -103,9 +103,9 @@ export const extractSelectedColumnsFromTree = (
         // console.log(`    Fields in type:`, Object.keys(typeFields));
         // Extract fields from all types (interfaces and concrete types)
         for (const [subFieldName, subFieldData] of Object.entries(typeFields)) {
-          console.log(
-            `    Checking subField: ${subFieldName}, name: ${subFieldData.name}`
-          );
+          // console.log(
+          //   `    Checking subField: ${subFieldName}, name: ${subFieldData.name}`
+          // );
           if (tableColumns[subFieldData.name]) {
             // console.log(`    ✅ Found in tableColumns: ${subFieldData.name}`);
             selectedColumns.push([subFieldData.name, true]);
