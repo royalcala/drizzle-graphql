@@ -365,7 +365,11 @@ export const createQueryResolver = (
         ),
       });
 
-      return result;
+      // Add _operation field to each result
+      return result.map((row: any) => ({
+        ...row,
+        _operation: "READ",
+      }));
     } catch (e) {
       if (typeof e === "object" && e !== null && "message" in e) {
         throw new GraphQLError(String(e.message));

@@ -164,13 +164,18 @@ export const buildSchemaSDL = <
 
   // Generate resolvers
   const queries = generateQueries(db, tables, relations);
-  const mutations = generateMutations(db, tables, relations);
+  const { mutations, deleteResultResolvers } = generateMutations(
+    db,
+    tables,
+    relations
+  );
 
   return {
     typeDefs,
     resolvers: {
       Query: queries,
       Mutation: mutations,
+      ...deleteResultResolvers,
     } as BuildSchemaSDLResult<TSchema>["resolvers"],
   };
 };

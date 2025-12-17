@@ -5,6 +5,13 @@ scalar ULID
     DISLIKE
   }
 
+enum OPERATION {
+  READ
+  INSERTED
+  UPDATED
+  DELETED
+}
+
 enum OrderByDirection {
   asc
   desc
@@ -75,6 +82,7 @@ type Comment {
   text: String!
   postId: ULID!
   userId: ULID!
+  _operation: OPERATION!
   post(where: PostFilters): Post
   user(where: UserFilters): User
 }
@@ -115,6 +123,7 @@ type Post {
   content: String!
   authorId: ULID!
   name: String
+  _operation: OPERATION!
   author(where: UserFilters): User
   comments(where: CommentFilters, orderBy: CommentOrderBy, limit: Int, offset: Int): [Comment!]!
 }
@@ -159,6 +168,7 @@ type Reaction {
   userId: String!
   """Type of reaction: LIKE or DISLIKE"""
   type: ReactionType!
+  _operation: OPERATION!
 }
 
 input ReactionInsertInput {
@@ -196,6 +206,7 @@ type User {
   name: String!
   email: String!
   bio: String
+  _operation: OPERATION!
   posts(where: PostFilters, orderBy: PostOrderBy, limit: Int, offset: Int): [Post!]!
   comments(where: CommentFilters, orderBy: CommentOrderBy, limit: Int, offset: Int): [Comment!]!
 }

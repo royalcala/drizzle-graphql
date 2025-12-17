@@ -100,6 +100,7 @@ describe("Resolver Tests", () => {
             name
             email
             bio
+            _operation
           }
         }
       `);
@@ -110,6 +111,7 @@ describe("Resolver Tests", () => {
       expect((data?.userFindMany as any[]).length).toBeGreaterThan(0);
       expect((data?.userFindMany as any[])[0]).toHaveProperty("id");
       expect((data?.userFindMany as any[])[0]).toHaveProperty("name");
+      expect((data?.userFindMany as any[])[0]._operation).toBe("READ");
     });
 
     it("should query users with where filter", async () => {
@@ -192,6 +194,7 @@ describe("Resolver Tests", () => {
             id
             name
             email
+            _operation
           }
         }
       `,
@@ -207,6 +210,7 @@ describe("Resolver Tests", () => {
       expect(data?.userInsertMany as any[]).toHaveLength(1);
       expect((data?.userInsertMany as any[])[0].name).toBe("New User");
       expect((data?.userInsertMany as any[])[0]).toHaveProperty("id");
+      expect((data?.userInsertMany as any[])[0]._operation).toBe("INSERTED");
       // Cleanup
       const insertedId = (data?.userInsertMany as any[])[0].id;
       //correct way to use drizzle
@@ -321,6 +325,7 @@ describe("Resolver Tests", () => {
           userUpdateMany(set: $set, where: $where) {
             id
             name
+            _operation
           }
         }
       `,
@@ -333,6 +338,7 @@ describe("Resolver Tests", () => {
       expect(data?.userUpdateMany as any[]).toHaveLength(1);
       expect((data?.userUpdateMany as any[])[0].id).toBe(testData.userId);
       expect((data?.userUpdateMany as any[])[0].name).toBe("Updated Name");
+      expect((data?.userUpdateMany as any[])[0]._operation).toBe("UPDATED");
 
       // Restore original data
       await db
@@ -384,6 +390,8 @@ describe("Resolver Tests", () => {
           userDeleteMany(where: $where) {
             id
             name
+            email
+            _operation
           }
         }
       `,
@@ -392,6 +400,8 @@ describe("Resolver Tests", () => {
 
       expect(data?.userDeleteMany as any[]).toHaveLength(1);
       expect((data?.userDeleteMany as any[])[0].id).toBe(deleteUserId);
+      expect((data?.userDeleteMany as any[])[0].name).toBe("To Delete");
+      expect((data?.userDeleteMany as any[])[0]._operation).toBe("DELETED");
 
       // Verify deletion
       const checkData = await executeQuery(
@@ -442,6 +452,7 @@ describe("Resolver Tests", () => {
             id
             title
             content
+            _operation
           }
         }
       `,
@@ -453,6 +464,9 @@ describe("Resolver Tests", () => {
       const deletedIds = deletedPosts.map((p: any) => p.id);
       expect(deletedIds).toContain(deletePostId1);
       expect(deletedIds).toContain(deletePostId2);
+      expect(deletedPosts[0]._operation).toBe("DELETED");
+      expect(deletedPosts[0]).toHaveProperty("title");
+      expect(deletedPosts[0]).toHaveProperty("content");
 
       // Verify deletion
       const checkData = await executeQuery(

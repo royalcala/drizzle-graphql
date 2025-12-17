@@ -90,12 +90,18 @@ export type MutationResolvers = Record<
   (...args: any[]) => Promise<any>
 >;
 
+export type DeleteResultResolvers = Record<string, Record<string, any>>;
+
 export const generateMutations = (
   db: BaseSQLiteDatabase<any, any, any, any>,
   tables: Record<string, TableInfo>,
   relations: Record<string, Record<string, TableNamedRelations>>
-): MutationResolvers => {
+): {
+  mutations: MutationResolvers;
+  deleteResultResolvers: DeleteResultResolvers;
+} => {
   const mutations: MutationResolvers = {};
+  const deleteResultResolvers: DeleteResultResolvers = {};
 
   for (const [tableName, tableInfo] of Object.entries(tables)) {
     const capitalizedName = capitalize(tableName);
@@ -162,7 +168,7 @@ export const generateMutations = (
         );
 
         // Use the query resolver with where clause for the inserted IDs
-        return queryResolver(
+        const result = await queryResolver(
           parent,
           {
             where: {
@@ -172,6 +178,12 @@ export const generateMutations = (
           context,
           info
         );
+
+        // Override _operation to INSERTED
+        return result.map((row: any) => ({
+          ...row,
+          _operation: "INSERTED",
+        }));
       } catch (e) {
         if (typeof e === "object" && e !== null && "message" in e) {
           throw new GraphQLError(String(e.message));
@@ -214,7 +226,7 @@ export const generateMutations = (
         );
 
         // Use the query resolver with where clause for the updated IDs
-        return queryResolver(
+        const result = await queryResolver(
           parent,
           {
             where: {
@@ -224,6 +236,12 @@ export const generateMutations = (
           context,
           info
         );
+
+        // Override _operation to UPDATED
+        return result.map((row: any) => ({
+          ...row,
+          _operation: "UPDATED",
+        }));
       } catch (e) {
         if (typeof e === "object" && e !== null && "message" in e) {
           throw new GraphQLError(String(e.message));
@@ -251,9 +269,13 @@ export const generateMutations = (
         }
 
         // Execute delete with RETURNING
-        const result = await (deleteQuery as any).returning();
+        const deletedRows = await (deleteQuery as any).returning();
 
-        return result;
+        // Return deleted rows with _operation field
+        return deletedRows.map((row: any) => ({
+          ...row,
+          _operation: "DELETED",
+        }));
       } catch (e) {
         if (typeof e === "object" && e !== null && "message" in e) {
           throw new GraphQLError(String(e.message));
@@ -263,5 +285,5 @@ export const generateMutations = (
     };
   }
 
-  return mutations;
+  return { mutations, deleteResultResolvers: {} };
 };

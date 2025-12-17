@@ -317,6 +317,9 @@ export const generateTypeDefs = (
       fields.push(`  ${columnName}: ${typeStr}`);
     }
 
+    // Add _operation field to track operation type
+    fields.push(`  _operation: OPERATION!`);
+
     // Add relation fields with arguments
     const tableRelations = relations[tableName];
     if (tableRelations) {
@@ -419,6 +422,14 @@ export const generateTypeDefs = (
 
   // Build final SDL with all definitions
   const allDefs: string[] = [];
+
+  // Add OPERATION enum
+  allDefs.push(`enum OPERATION {
+  READ
+  INSERTED
+  UPDATED
+  DELETED
+}`);
 
   // Add custom scalars
   if (customScalars.size > 0) {
