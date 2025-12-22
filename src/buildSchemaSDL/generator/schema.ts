@@ -332,8 +332,25 @@ export const generateTypeDefs = (
 
         if (isOne) {
           // One-to-one or many-to-one: single object with where argument
+          // Check if all foreign key columns are NOT NULL to determine nullability
+          const relation = relationInfo.relation;
+          const config = relation.config;
+          let isNonNullable = false;
+
+          if (config?.fields && config.fields.length > 0) {
+            // Check if all foreign key fields are non-nullable
+            isNonNullable = config.fields.every((field: any) => {
+              const fieldColumnName = field.name;
+              const column = Object.values(tableInfo.columns).find(
+                (col: any) => col.name === fieldColumnName
+              );
+              return column && (column as any).notNull;
+            });
+          }
+
+          const nullableModifier = isNonNullable ? "!" : "";
           fields.push(
-            `  ${relationName}(where: ${targetTypeName}Filters): ${targetTypeName}`
+            `  ${relationName}(where: ${targetTypeName}Filters): ${targetTypeName}${nullableModifier}`
           );
         } else {
           // One-to-many: array with where, orderBy, limit, offset

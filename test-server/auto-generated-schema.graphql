@@ -83,8 +83,8 @@ type Comment {
   postId: ULID!
   userId: ULID!
   _operation: OPERATION!
-  post(where: PostFilters): Post
-  user(where: UserFilters): User
+  post(where: PostFilters): Post!
+  user(where: UserFilters): User!
 }
 
 input CommentInsertInput {
@@ -124,7 +124,7 @@ type Post {
   authorId: ULID!
   name: String
   _operation: OPERATION!
-  author(where: UserFilters): User
+  author(where: UserFilters): User!
   comments(where: CommentFilters, orderBy: CommentOrderBy, limit: Int, offset: Int): [Comment!]!
 }
 
