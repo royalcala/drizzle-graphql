@@ -3,7 +3,7 @@ import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 import { buildSchemaSDL } from "../src/index";
 import * as schema from "./schema";
-import { user, post, comment, reaction } from "./schema";
+import { user, post, comment, reaction, userProfile } from "./schema";
 import { ulid as generateUlid } from "ulid";
 import { graphql, GraphQLSchema } from "graphql";
 import { makeExecutableSchema } from "@graphql-tools/schema";
@@ -50,6 +50,7 @@ describe("Resolver Tests", () => {
     postId: generateUlid(),
     commentId: generateUlid(),
     reactionId: generateUlid(),
+    profileId: generateUlid(),
   };
 
   beforeAll(async () => {
@@ -81,6 +82,14 @@ describe("Resolver Tests", () => {
       userId: testData.userId,
       type: "LIKE",
     });
+
+    await db.insert(userProfile).values({
+      id: testData.profileId,
+      userId: testData.userId,
+      bio: "Test user profile bio",
+      avatarUrl: "https://example.com/avatar.jpg",
+      website: "https://example.com",
+    });
   });
 
   afterAll(async () => {
@@ -88,6 +97,7 @@ describe("Resolver Tests", () => {
     await db.delete(reaction);
     await db.delete(comment);
     await db.delete(post);
+    await db.delete(userProfile);
     await db.delete(user);
   });
 
@@ -500,6 +510,156 @@ describe("Resolver Tests", () => {
     });
   });
 
+  describe("One-to-One Relation Tests", () => {
+    it("should query user with profile (one-to-one)", async () => {
+      const data = await executeQuery(
+        `
+        query($userId: ULID!) {
+          userFindMany(where: { id: { eq: $userId } }) {
+            id
+            name
+            profile {
+              id
+              bio
+              avatarUrl
+              website
+            }
+          }
+        }
+      `,
+        { userId: testData.userId }
+      );
+
+      expect(data?.userFindMany as any[]).toHaveLength(1);
+      const user = (data?.userFindMany as any[])[0];
+      expect(user.id).toBe(testData.userId);
+      expect(user.profile).toBeDefined();
+      expect(user.profile.id).toBe(testData.profileId);
+      expect(user.profile.bio).toBe("Test user profile bio");
+      expect(user.profile.avatarUrl).toBe("https://example.com/avatar.jpg");
+      expect(user.profile.website).toBe("https://example.com");
+    });
+
+    it("should query profile with user (inverse one-to-one)", async () => {
+      const data = await executeQuery(
+        `
+        query($profileId: ULID!) {
+          userProfileFindMany(where: { id: { eq: $profileId } }) {
+            id
+            bio
+            user {
+              id
+              name
+              email
+            }
+          }
+        }
+      `,
+        { profileId: testData.profileId }
+      );
+
+      expect(data?.userProfileFindMany as any[]).toHaveLength(1);
+      const profile = (data?.userProfileFindMany as any[])[0];
+      expect(profile.id).toBe(testData.profileId);
+      expect(profile.user).toBeDefined();
+      expect(profile.user.id).toBe(testData.userId);
+      expect(profile.user.name).toBe("Test User");
+    });
+
+    it("should query user with filtered profile that matches", async () => {
+      const data = await executeQuery(
+        `
+        query($userId: ULID!) {
+          userFindMany(where: { id: { eq: $userId } }) {
+            id
+            name
+            profile(where: { bio: { like: "%profile%" } }) {
+              id
+              bio
+            }
+          }
+        }
+      `,
+        { userId: testData.userId }
+      );
+
+      expect(data?.userFindMany as any[]).toHaveLength(1);
+      const user = (data?.userFindMany as any[])[0];
+      expect(user.profile).toBeDefined();
+      expect(user.profile.bio).toContain("profile");
+    });
+
+    it("should return null for profile when filter does not match (one-to-one)", async () => {
+      const data = await executeQuery(
+        `
+        query($userId: ULID!) {
+          userFindMany(where: { id: { eq: $userId } }) {
+            id
+            name
+            profile(where: { bio: { eq: "Non-existent bio" } }) {
+              id
+              bio
+            }
+          }
+        }
+      `,
+        { userId: testData.userId }
+      );
+
+      expect(data?.userFindMany as any[]).toHaveLength(1);
+      const user = (data?.userFindMany as any[])[0];
+      expect(user.profile).toBeNull();
+    });
+
+    it("should insert user with profile and query nested", async () => {
+      const newUserId = generateUlid();
+      const newProfileId = generateUlid();
+
+      // Insert user
+      await db.insert(user).values({
+        id: newUserId,
+        name: "User with Profile",
+        email: "withprofile@example.com",
+      });
+
+      // Insert profile
+      await db.insert(userProfile).values({
+        id: newProfileId,
+        userId: newUserId,
+        bio: "New user profile",
+        avatarUrl: "https://example.com/new.jpg",
+      });
+
+      // Query with nested relation
+      const data = await executeQuery(
+        `
+        query($userId: ULID!) {
+          userFindMany(where: { id: { eq: $userId } }) {
+            id
+            name
+            profile {
+              id
+              bio
+              avatarUrl
+            }
+          }
+        }
+      `,
+        { userId: newUserId }
+      );
+
+      expect(data?.userFindMany as any[]).toHaveLength(1);
+      const queriedUser = (data?.userFindMany as any[])[0];
+      expect(queriedUser.profile).toBeDefined();
+      expect(queriedUser.profile.id).toBe(newProfileId);
+      expect(queriedUser.profile.bio).toBe("New user profile");
+
+      // Cleanup
+      await db.delete(userProfile).where(eq(userProfile.id, newProfileId));
+      await db.delete(user).where(eq(user.id, newUserId));
+    });
+  });
+
   describe("Deep Relational Queries", () => {
     it("should query users with nested posts and comments", async () => {
       const data = await executeQuery(
@@ -706,6 +866,270 @@ describe("Resolver Tests", () => {
       // Cleanup
       await db.delete(comment).where(eq(comment.id, firstComment.id));
       await db.delete(comment).where(eq(comment.id, secondComment.id));
+    });
+  });
+
+  describe("Relation Filters", () => {
+    it("should query post with filtered comments (one-to-many with where)", async () => {
+      // Create additional comments for filtering
+      const comment1Id = generateUlid();
+      const comment2Id = generateUlid();
+
+      await db.insert(comment).values([
+        {
+          id: comment1Id,
+          text: "This is a special comment",
+          postId: testData.postId,
+          userId: testData.userId,
+        },
+        {
+          id: comment2Id,
+          text: "Regular comment here",
+          postId: testData.postId,
+          userId: testData.userId,
+        },
+      ]);
+
+      // Query with filter on one-to-many relation
+      const data = await executeQuery(
+        `
+        query($postId: ULID!) {
+          postFindMany(where: { id: { eq: $postId } }) {
+            id
+            title
+            comments(where: { text: { like: "%special%" } }) {
+              id
+              text
+            }
+          }
+        }
+      `,
+        { postId: testData.postId }
+      );
+
+      expect(data?.postFindMany as any[]).toHaveLength(1);
+      const post = (data?.postFindMany as any[])[0];
+      expect(post.id).toBe(testData.postId);
+      expect(post.comments).toBeDefined();
+      expect(Array.isArray(post.comments)).toBe(true);
+      expect(post.comments.length).toBe(1);
+      expect(post.comments[0].text).toBe("This is a special comment");
+      expect(post.comments[0].id).toBe(comment1Id);
+
+      // Cleanup
+      await db.delete(comment).where(eq(comment.id, comment1Id));
+      await db.delete(comment).where(eq(comment.id, comment2Id));
+    });
+
+    it("should query user with filtered posts and nested filtered comments", async () => {
+      // Create additional data for complex filtering
+      const post2Id = generateUlid();
+      const comment3Id = generateUlid();
+
+      await db.insert(post).values({
+        id: post2Id,
+        title: "Important Post",
+        content: "Important content",
+        authorId: testData.userId,
+      });
+
+      await db.insert(comment).values({
+        id: comment3Id,
+        text: "Urgent comment",
+        postId: post2Id,
+        userId: testData.userId,
+      });
+
+      // Query with nested filters on one-to-many relations
+      const data = await executeQuery(
+        `
+        query($userId: ULID!) {
+          userFindMany(where: { id: { eq: $userId } }) {
+            id
+            name
+            posts(where: { title: { like: "%Important%" } }) {
+              id
+              title
+              comments(where: { text: { like: "%Urgent%" } }) {
+                id
+                text
+              }
+            }
+          }
+        }
+      `,
+        { userId: testData.userId }
+      );
+
+      expect(data?.userFindMany as any[]).toHaveLength(1);
+      const user = (data?.userFindMany as any[])[0];
+      expect(user.posts).toBeDefined();
+      expect(user.posts.length).toBe(1);
+      expect(user.posts[0].title).toBe("Important Post");
+      expect(user.posts[0].comments).toBeDefined();
+      expect(user.posts[0].comments.length).toBe(1);
+      expect(user.posts[0].comments[0].text).toBe("Urgent comment");
+
+      // Cleanup
+      await db.delete(comment).where(eq(comment.id, comment3Id));
+      await db.delete(post).where(eq(post.id, post2Id));
+    });
+
+    it("should return empty array for comments when filter does not match (one-to-many)", async () => {
+      const data = await executeQuery(
+        `
+        query($postId: ULID!) {
+          postFindMany(where: { id: { eq: $postId } }) {
+            id
+            title
+            comments(where: { text: { eq: "Non-existent comment text" } }) {
+              id
+              text
+            }
+          }
+        }
+      `,
+        { postId: testData.postId }
+      );
+
+      expect(data?.postFindMany as any[]).toHaveLength(1);
+      const post = (data?.postFindMany as any[])[0];
+      expect(post.comments).toBeDefined();
+      expect(Array.isArray(post.comments)).toBe(true);
+      expect(post.comments.length).toBe(0);
+    });
+
+    it("should query posts with filtered author relation that matches", async () => {
+      const data = await executeQuery(
+        `
+        query($postId: ULID!, $userName: String!) {
+          postFindMany(where: { id: { eq: $postId } }) {
+            id
+            title
+            author(where: { name: { eq: $userName } }) {
+              id
+              name
+            }
+          }
+        }
+      `,
+        { postId: testData.postId, userName: "Test User" }
+      );
+
+      expect(data?.postFindMany as any[]).toHaveLength(1);
+      const post = (data?.postFindMany as any[])[0];
+      expect(post.id).toBe(testData.postId);
+      expect(post.author).toBeDefined();
+      expect(post.author.name).toBe("Test User");
+    });
+
+    it("should return null for author when filter does not match", async () => {
+      const data = await executeQuery(
+        `
+        query($postId: ULID!) {
+          postFindMany(where: { id: { eq: $postId } }) {
+            id
+            title
+            author(where: { name: { eq: "Non Existent User" } }) {
+              id
+              name
+            }
+          }
+        }
+      `,
+        { postId: testData.postId }
+      );
+
+      expect(data?.postFindMany as any[]).toHaveLength(1);
+      const post = (data?.postFindMany as any[])[0];
+      expect(post.id).toBe(testData.postId);
+      expect(post.author).toBeNull();
+    });
+
+    it("should query comments with filtered user and post relations", async () => {
+      const data = await executeQuery(
+        `
+        query($commentId: ULID!, $userName: String!, $postTitle: String!) {
+          commentFindMany(where: { id: { eq: $commentId } }) {
+            id
+            text
+            user(where: { name: { eq: $userName } }) {
+              id
+              name
+            }
+            post(where: { title: { eq: $postTitle } }) {
+              id
+              title
+            }
+          }
+        }
+      `,
+        {
+          commentId: testData.commentId,
+          userName: "Test User",
+          postTitle: "Test Post",
+        }
+      );
+
+      expect(data?.commentFindMany as any[]).toHaveLength(1);
+      const comment = (data?.commentFindMany as any[])[0];
+      expect(comment.id).toBe(testData.commentId);
+      expect(comment.user).toBeDefined();
+      expect(comment.user.name).toBe("Test User");
+      expect(comment.post).toBeDefined();
+      expect(comment.post.title).toBe("Test Post");
+    });
+
+    it("should handle multiple posts with mixed filtered relations", async () => {
+      // Create another user
+      const otherUserId = generateUlid();
+      await db.insert(user).values({
+        id: otherUserId,
+        name: "Other User",
+        email: "other@example.com",
+      });
+
+      // Create post by the other user
+      const otherPostId = generateUlid();
+      await db.insert(post).values({
+        id: otherPostId,
+        title: "Other Post",
+        content: "Other content",
+        authorId: otherUserId,
+      });
+
+      const data = await executeQuery(
+        `
+        query {
+          postFindMany {
+            id
+            title
+            author(where: { name: { eq: "Test User" } }) {
+              id
+              name
+            }
+          }
+        }
+      `
+      );
+
+      expect(data?.postFindMany as any[]).toBeInstanceOf(Array);
+      const posts = data?.postFindMany as any[];
+
+      // Find the test post
+      const testPost = posts.find((p: any) => p.id === testData.postId);
+      expect(testPost).toBeDefined();
+      expect(testPost.author).toBeDefined();
+      expect(testPost.author.name).toBe("Test User");
+
+      // Find the other post - author should be null because filter doesn't match
+      const otherPost = posts.find((p: any) => p.id === otherPostId);
+      expect(otherPost).toBeDefined();
+      expect(otherPost.author).toBeNull();
+
+      // Cleanup
+      await db.delete(post).where(eq(post.id, otherPostId));
+      await db.delete(user).where(eq(user.id, otherUserId));
     });
   });
 });

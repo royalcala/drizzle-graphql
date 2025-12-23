@@ -83,8 +83,8 @@ type Comment {
   postId: ULID!
   userId: ULID!
   _operation: OPERATION!
-  post(where: PostFilters): Post!
-  user(where: UserFilters): User!
+  post(where: PostFilters): Post
+  user(where: UserFilters): User
 }
 
 input CommentInsertInput {
@@ -124,7 +124,7 @@ type Post {
   authorId: ULID!
   name: String
   _operation: OPERATION!
-  author(where: UserFilters): User!
+  author(where: UserFilters): User
   comments(where: CommentFilters, orderBy: CommentOrderBy, limit: Int, offset: Int): [Comment!]!
 }
 
@@ -209,6 +209,7 @@ type User {
   _operation: OPERATION!
   posts(where: PostFilters, orderBy: PostOrderBy, limit: Int, offset: Int): [Post!]!
   comments(where: CommentFilters, orderBy: CommentOrderBy, limit: Int, offset: Int): [Comment!]!
+  profile(where: UserProfileFilters): UserProfile
 }
 
 input UserInsertInput {
@@ -240,11 +241,56 @@ input UserOrderBy {
   bio: InnerOrder
 }
 
+type UserProfile {
+  """Unique identifier for the user profile"""
+  id: ULID!
+  userId: ULID!
+  bio: String
+  avatarUrl: String
+  website: String
+  _operation: OPERATION!
+  user(where: UserFilters): User
+}
+
+input UserProfileInsertInput {
+  id: ULID
+  userId: ULID
+  bio: String
+  avatarUrl: String
+  website: String
+}
+
+input UserProfileUpdateInput {
+  id: ULID
+  userId: ULID
+  bio: String
+  avatarUrl: String
+  website: String
+}
+
+input UserProfileFilters {
+  id: ULIDFieldFilter
+  userId: ULIDFieldFilter
+  bio: StringFieldFilter
+  avatarUrl: StringFieldFilter
+  website: StringFieldFilter
+  OR: [UserProfileFilters!]
+}
+
+input UserProfileOrderBy {
+  id: InnerOrder
+  userId: InnerOrder
+  bio: InnerOrder
+  avatarUrl: InnerOrder
+  website: InnerOrder
+}
+
 type Query {
   commentFindMany(where: CommentFilters, orderBy: CommentOrderBy, limit: Int, offset: Int): [Comment!]!
   postFindMany(where: PostFilters, orderBy: PostOrderBy, limit: Int, offset: Int): [Post!]!
   reactionFindMany(where: ReactionFilters, orderBy: ReactionOrderBy, limit: Int, offset: Int): [Reaction!]!
   userFindMany(where: UserFilters, orderBy: UserOrderBy, limit: Int, offset: Int): [User!]!
+  userProfileFindMany(where: UserProfileFilters, orderBy: UserProfileOrderBy, limit: Int, offset: Int): [UserProfile!]!
 }
 
 type Mutation {
@@ -260,4 +306,7 @@ type Mutation {
   userInsertMany(values: [UserInsertInput!]!): [User!]!
   userUpdateMany(where: UserFilters, set: UserUpdateInput!): [User!]!
   userDeleteMany(where: UserFilters): [User!]!
+  userProfileInsertMany(values: [UserProfileInsertInput!]!): [UserProfile!]!
+  userProfileUpdateMany(where: UserProfileFilters, set: UserProfileUpdateInput!): [UserProfile!]!
+  userProfileDeleteMany(where: UserProfileFilters): [UserProfile!]!
 }

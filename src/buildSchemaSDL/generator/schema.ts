@@ -169,7 +169,9 @@ export const generateTypes = (
   for (const [key, value] of schemaEntries) {
     if (value && typeof value === "object" && "getSQL" in value) {
       const table = value as Table;
-      const tableName = getTableName(table);
+      // Use the JavaScript variable name (key) for db.query access,
+      // not the SQL table name from getTableName
+      const tableName = key;
       const columns = getTableColumns(table);
 
       tables[tableName] = {
@@ -332,25 +334,10 @@ export const generateTypeDefs = (
 
         if (isOne) {
           // One-to-one or many-to-one: single object with where argument
-          // Check if all foreign key columns are NOT NULL to determine nullability
-          const relation = relationInfo.relation;
-          const config = relation.config;
-          let isNonNullable = false;
-
-          if (config?.fields && config.fields.length > 0) {
-            // Check if all foreign key fields are non-nullable
-            isNonNullable = config.fields.every((field: any) => {
-              const fieldColumnName = field.name;
-              const column = Object.values(tableInfo.columns).find(
-                (col: any) => col.name === fieldColumnName
-              );
-              return column && (column as any).notNull;
-            });
-          }
-
-          const nullableModifier = isNonNullable ? "!" : "";
+          // Note: Relations with where filters are always nullable because
+          // the filter might not match any records, even if the foreign key is NOT NULL
           fields.push(
-            `  ${relationName}(where: ${targetTypeName}Filters): ${targetTypeName}${nullableModifier}`
+            `  ${relationName}(where: ${targetTypeName}Filters): ${targetTypeName}`
           );
         } else {
           // One-to-many: array with where, orderBy, limit, offset

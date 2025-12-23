@@ -45,6 +45,18 @@ export const reaction = sqliteTable("reaction", {
   type: text("type").$type<ReactionTypes>().notNull(),
 });
 
+// One-to-one relation: each user has exactly one profile
+export const userProfile = sqliteTable("user_profile", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => generateUlid())
+    .notNull(),
+  userId: text("user_id").notNull().unique(),
+  bio: text("bio"),
+  avatarUrl: text("avatar_url"),
+  website: text("website"),
+});
+
 // Mark columns as ULID type for GraphQL with descriptions
 setCustomGraphQL(user, {
   id: { type: "ULID", description: "Unique identifier for the user" },
@@ -79,10 +91,17 @@ setCustomGraphQL(reaction, {
     description: "Type of reaction: LIKE or DISLIKE",
   },
 });
+setCustomGraphQL(userProfile, {
+  id: { type: "ULID", description: "Unique identifier for the user profile" },
+});
 
-export const userRelations = relations(user, ({ many }) => ({
+export const userRelations = relations(user, ({ one, many }) => ({
   posts: many(post),
   comments: many(comment),
+  profile: one(userProfile, {
+    fields: [user.id],
+    references: [userProfile.userId],
+  }),
 }));
 
 export const postRelations = relations(post, ({ one, many }) => ({
@@ -100,6 +119,13 @@ export const commentRelations = relations(comment, ({ one }) => ({
   }),
   user: one(user, {
     fields: [comment.userId],
+    references: [user.id],
+  }),
+}));
+
+export const userProfileRelations = relations(userProfile, ({ one }) => ({
+  user: one(user, {
+    fields: [userProfile.userId],
     references: [user.id],
   }),
 }));
