@@ -528,6 +528,61 @@ describe("Resolver Tests", () => {
       // Cleanup user
       await db.delete(user).where(eq(user.id, deleteUserId));
     });
+
+    it("should return deletedItems and allow querying remaining items via FindMany", async () => {
+      // Create multiple users
+      const user1Id = generateUlid();
+      const user2Id = generateUlid();
+      const user3Id = generateUlid();
+
+      await db.insert(user).values([
+        { id: user1Id, name: "User 1", email: "user1@test.com" },
+        { id: user2Id, name: "User 2", email: "user2@test.com" },
+        { id: user3Id, name: "User 3", email: "user3@test.com" },
+      ]);
+
+      // Delete user1 and user2, then query remaining users in the same request
+      const data = await executeQuery(
+        `
+        mutation($where: UserFilters!) {
+          userDeleteMany(where: $where) {
+            deletedItems {
+              id
+            }
+            userFindMany(where: { name: { like: "User%" } }) {
+              id
+              name
+              email
+            }
+          }
+        }
+      `,
+        { where: { id: { inArray: [user1Id, user2Id] } } }
+      );
+
+      // Verify deletedItems contains the two deleted users
+      expect(data?.userDeleteMany?.deletedItems as any[]).toHaveLength(2);
+      const deletedIds = (data?.userDeleteMany?.deletedItems as any[]).map(
+        (item: any) => item.id
+      );
+      expect(deletedIds).toContain(user1Id);
+      expect(deletedIds).toContain(user2Id);
+
+      // Verify userFindMany returns only the remaining user (user3)
+      const remainingUsers = data?.userDeleteMany?.userFindMany as any[];
+      expect(remainingUsers.length).toBeGreaterThanOrEqual(1);
+
+      // Check that user3 is in the remaining users
+      const remainingIds = remainingUsers.map((u: any) => u.id);
+      expect(remainingIds).toContain(user3Id);
+
+      // Check that deleted users are NOT in the remaining users
+      expect(remainingIds).not.toContain(user1Id);
+      expect(remainingIds).not.toContain(user2Id);
+
+      // Cleanup
+      await db.delete(user).where(eq(user.id, user3Id));
+    });
   });
 
   describe("Type Safety Tests", () => {

@@ -80,7 +80,19 @@ export const generateMutations = (
             relations,
             primaryKeyColumn
         );
+
+        // Add field resolver for DeleteResult type
+        deleteResultResolvers[`${capitalizedName}DeleteResult`] = {
+            [`${tableName}FindMany`]: (parent: any, args: any, context: any, info: any) => {
+                // The parent contains the resolver function we returned
+                const resolverFn = parent[`${tableName}FindMany`];
+                if (typeof resolverFn === 'function') {
+                    return resolverFn(parent, args, context, info);
+                }
+                return [];
+            },
+        };
     }
 
-    return { mutations, deleteResultResolvers: {} };
+    return { mutations, deleteResultResolvers };
 };
