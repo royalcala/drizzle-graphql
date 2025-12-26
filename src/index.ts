@@ -10,6 +10,7 @@ export type {
   UpdateInput,
   Capitalize,
 } from "./buildSchemaSDL/index";
+export { createExportMiddleware, makeScalarAcceptExports } from "./export-tool";
 export { setCustomGraphQL, setCustomGraphQLTypes } from "./helpers";
 export type { GraphQLFieldConfig } from "./helpers";
 export * from "./types";
