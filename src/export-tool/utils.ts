@@ -126,7 +126,7 @@ export function extractExportDirectives(
 
   // Get the selection set from the field
   const fieldNode = info.fieldNodes[0];
-  if (!fieldNode.selectionSet) {
+  if (!fieldNode || !fieldNode.selectionSet) {
     return exports;
   }
 
