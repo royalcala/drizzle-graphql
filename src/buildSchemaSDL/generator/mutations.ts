@@ -179,11 +179,7 @@ export const generateMutations = (
           info
         );
 
-        // Override _operation to INSERTED
-        return result.map((row: any) => ({
-          ...row,
-          _operation: "INSERTED",
-        }));
+        return result;
       } catch (e) {
         if (typeof e === "object" && e !== null && "message" in e) {
           throw new GraphQLError(String(e.message));
@@ -237,11 +233,7 @@ export const generateMutations = (
           info
         );
 
-        // Override _operation to UPDATED
-        return result.map((row: any) => ({
-          ...row,
-          _operation: "UPDATED",
-        }));
+        return result;
       } catch (e) {
         if (typeof e === "object" && e !== null && "message" in e) {
           throw new GraphQLError(String(e.message));
@@ -271,11 +263,7 @@ export const generateMutations = (
         // Execute delete with RETURNING
         const deletedRows = await (deleteQuery as any).returning();
 
-        // Return deleted rows with _operation field
-        return deletedRows.map((row: any) => ({
-          ...row,
-          _operation: "DELETED",
-        }));
+        return deletedRows;
       } catch (e) {
         if (typeof e === "object" && e !== null && "message" in e) {
           throw new GraphQLError(String(e.message));

@@ -365,11 +365,7 @@ export const createQueryResolver = (
         ),
       });
 
-      // Add _operation field to each result
-      return result.map((row: any) => ({
-        ...row,
-        _operation: "READ",
-      }));
+      return result;
     } catch (e) {
       if (typeof e === "object" && e !== null && "message" in e) {
         throw new GraphQLError(String(e.message));
@@ -423,15 +419,7 @@ export const createFindFirstResolver = (
         ),
       });
 
-      // Add _operation field to result if found
-      if (result) {
-        return {
-          ...result,
-          _operation: "READ",
-        };
-      }
-
-      return null;
+      return result || null;
     } catch (e) {
       if (typeof e === "object" && e !== null && "message" in e) {
         throw new GraphQLError(String(e.message));

@@ -154,7 +154,6 @@ describe("Resolver Tests", () => {
             name
             email
             bio
-            _operation
           }
         }
       `);
@@ -165,20 +164,19 @@ describe("Resolver Tests", () => {
       expect((data?.userFindMany as any[]).length).toBeGreaterThan(0);
       expect((data?.userFindMany as any[])[0]).toHaveProperty("id");
       expect((data?.userFindMany as any[])[0]).toHaveProperty("name");
-      expect((data?.userFindMany as any[])[0]._operation).toBe("READ");
     });
 
     it("should query users with where filter", async () => {
       const data = await executeQuery(
         `
         query($userId: ULID!) {
-          userFindMany(where: { id: { eq: $userId } }) {
-            id
-            name
-            email
-          }
+        userFindMany(where: { id: { eq: $userId } }) {
+          id
+          name
+          email
         }
-      `,
+      }
+        `,
         { userId: testData.userId }
       );
 
@@ -190,12 +188,12 @@ describe("Resolver Tests", () => {
     it("should query posts", async () => {
       const data = await executeQuery(`
         query {
-          postFindMany {
-            id
+        postFindMany {
+        id
             title
             content
             authorId
-          }
+      }
         }
       `);
 
@@ -208,12 +206,12 @@ describe("Resolver Tests", () => {
       const data = await executeQuery(
         `
         query($postId: ULID!) {
-          postFindMany(where: { id: { eq: $postId } }) {
-            id
-            title
-            authorId
-          }
-        }
+      postFindMany(where: { id: { eq: $postId } }) {
+        id
+        title
+        authorId
+      }
+    }
       `,
         { postId: testData.postId }
       );
@@ -226,11 +224,11 @@ describe("Resolver Tests", () => {
     it("should query with limit and offset", async () => {
       const data = await executeQuery(`
         query {
-          userFindMany(limit: 1, offset: 0) {
-            id
-            name
-          }
-        }
+      userFindMany(limit: 1, offset: 0) {
+        id
+        name
+      }
+    }
       `);
 
       expect(((data?.userFindMany as any[]) || []).length).toBeLessThanOrEqual(
@@ -244,14 +242,15 @@ describe("Resolver Tests", () => {
       const data = await executeQuery(
         `
         mutation($values: [UserInsertInput!]!) {
-          userInsertMany(values: $values) {
-            id
-            name
-            email
-            _operation
-          }
-        }
-      `,
+      userInsertMany(values: $values) {
+        id
+        name
+        id
+        name
+        email
+      }
+    }
+  `,
         {
           values: [
             {
@@ -264,7 +263,6 @@ describe("Resolver Tests", () => {
       expect(data?.userInsertMany as any[]).toHaveLength(1);
       expect((data?.userInsertMany as any[])[0].name).toBe("New User");
       expect((data?.userInsertMany as any[])[0]).toHaveProperty("id");
-      expect((data?.userInsertMany as any[])[0]._operation).toBe("INSERTED");
       // Cleanup
       const insertedId = (data?.userInsertMany as any[])[0].id;
       //correct way to use drizzle
@@ -378,8 +376,8 @@ describe("Resolver Tests", () => {
         mutation($set: UserUpdateInput!, $where: UserFilters) {
           userUpdateMany(set: $set, where: $where) {
             id
+            id
             name
-            _operation
           }
         }
       `,
@@ -392,7 +390,6 @@ describe("Resolver Tests", () => {
       expect(data?.userUpdateMany as any[]).toHaveLength(1);
       expect((data?.userUpdateMany as any[])[0].id).toBe(testData.userId);
       expect((data?.userUpdateMany as any[])[0].name).toBe("Updated Name");
-      expect((data?.userUpdateMany as any[])[0]._operation).toBe("UPDATED");
 
       // Restore original data
       await db
@@ -405,12 +402,12 @@ describe("Resolver Tests", () => {
       const data = await executeQuery(
         `
         mutation($set: PostUpdateInput!, $where: PostFilters) {
-          postUpdateMany(set: $set, where: $where) {
-            id
-            title
-          }
+        postUpdateMany(set: $set, where: $where) {
+          id
+          title
         }
-      `,
+      }
+        `,
         {
           set: { title: "Updated Title" },
           where: { id: { eq: testData.postId } },
@@ -441,11 +438,12 @@ describe("Resolver Tests", () => {
       const data = await executeQuery(
         `
         mutation($where: UserFilters!) {
-          userDeleteMany(where: $where) {
+        userDeleteMany(where: $where) {
+          id
+          name
             id
             name
             email
-            _operation
           }
         }
       `,
@@ -455,7 +453,6 @@ describe("Resolver Tests", () => {
       expect(data?.userDeleteMany as any[]).toHaveLength(1);
       expect((data?.userDeleteMany as any[])[0].id).toBe(deleteUserId);
       expect((data?.userDeleteMany as any[])[0].name).toBe("To Delete");
-      expect((data?.userDeleteMany as any[])[0]._operation).toBe("DELETED");
 
       // Verify deletion
       const checkData = await executeQuery(
@@ -505,8 +502,9 @@ describe("Resolver Tests", () => {
           postDeleteMany(where: $where) {
             id
             title
+            id
+            title
             content
-            _operation
           }
         }
       `,
@@ -518,7 +516,6 @@ describe("Resolver Tests", () => {
       const deletedIds = deletedPosts.map((p: any) => p.id);
       expect(deletedIds).toContain(deletePostId1);
       expect(deletedIds).toContain(deletePostId2);
-      expect(deletedPosts[0]._operation).toBe("DELETED");
       expect(deletedPosts[0]).toHaveProperty("title");
       expect(deletedPosts[0]).toHaveProperty("content");
 
@@ -530,7 +527,7 @@ describe("Resolver Tests", () => {
             id
           }
         }
-      `,
+          `,
         { postId: deletePostId1 }
       );
       expect(checkData?.postFindMany as any[]).toHaveLength(0);
@@ -570,7 +567,7 @@ describe("Resolver Tests", () => {
             }
           }
         }
-      `,
+          `,
         { userId: testData.userId }
       );
 
@@ -598,7 +595,7 @@ describe("Resolver Tests", () => {
             }
           }
         }
-      `,
+          `,
         { profileId: testData.profileId }
       );
 
@@ -623,7 +620,7 @@ describe("Resolver Tests", () => {
             }
           }
         }
-      `,
+          `,
         { userId: testData.userId }
       );
 
@@ -646,7 +643,7 @@ describe("Resolver Tests", () => {
             }
           }
         }
-      `,
+          `,
         { userId: testData.userId }
       );
 
@@ -688,7 +685,7 @@ describe("Resolver Tests", () => {
             }
           }
         }
-      `,
+          `,
         { userId: newUserId }
       );
 
@@ -724,7 +721,7 @@ describe("Resolver Tests", () => {
             }
           }
         }
-      `,
+          `,
         { userId: testData.userId }
       );
 
@@ -771,7 +768,7 @@ describe("Resolver Tests", () => {
             }
           }
         }
-      `,
+          `,
         {
           values: [
             {
@@ -818,7 +815,7 @@ describe("Resolver Tests", () => {
             }
           }
         }
-      `,
+          `,
         {
           set: { content: "Updated content with relations" },
           where: { id: { eq: testData.postId } },
@@ -865,7 +862,7 @@ describe("Resolver Tests", () => {
             }
           }
         }
-      `,
+          `,
         {
           values: [
             {
@@ -947,7 +944,7 @@ describe("Resolver Tests", () => {
             }
           }
         }
-      `,
+          `,
         { postId: testData.postId }
       );
 
@@ -1001,7 +998,7 @@ describe("Resolver Tests", () => {
             }
           }
         }
-      `,
+          `,
         { userId: testData.userId }
       );
 
@@ -1032,7 +1029,7 @@ describe("Resolver Tests", () => {
             }
           }
         }
-      `,
+          `,
         { postId: testData.postId }
       );
 
@@ -1056,7 +1053,7 @@ describe("Resolver Tests", () => {
             }
           }
         }
-      `,
+          `,
         { postId: testData.postId, userName: "Test User" }
       );
 
@@ -1080,7 +1077,7 @@ describe("Resolver Tests", () => {
             }
           }
         }
-      `,
+          `,
         { postId: testData.postId }
       );
 
@@ -1107,7 +1104,7 @@ describe("Resolver Tests", () => {
             }
           }
         }
-      `,
+          `,
         {
           commentId: testData.commentId,
           userName: "Test User",
@@ -1146,13 +1143,13 @@ describe("Resolver Tests", () => {
         `
         query {
           postFindMany {
-            id
+          id
             title
             author(where: { name: { eq: "Test User" } }) {
-              id
-              name
-            }
+            id
+            name
           }
+        }
         }
       `
       );
@@ -1182,36 +1179,34 @@ describe("Resolver Tests", () => {
       const data = await executeQuery(
         `
         query($userId: ULID!) {
-          userFindFirst(where: { id: { eq: $userId } }) {
-            id
-            name
-            email
-            bio
-            _operation
-          }
+        userFindFirst(where: { id: { eq: $userId } }) {
+          id
+          name
+          email
+          bio
         }
-      `,
+      }
+        `,
         { userId: testData.userId }
       );
 
       expect(data?.userFindFirst).toBeDefined();
       expect((data?.userFindFirst as any).id).toBe(testData.userId);
       expect((data?.userFindFirst as any).name).toBe("Test User");
-      expect((data?.userFindFirst as any)._operation).toBe("READ");
     });
 
     it("should query single post with findFirst", async () => {
       const data = await executeQuery(
         `
         query($postId: ULID!) {
-          postFindFirst(where: { id: { eq: $postId } }) {
-            id
-            title
-            content
-            authorId
-          }
+        postFindFirst(where: { id: { eq: $postId } }) {
+          id
+          title
+          content
+          authorId
         }
-      `,
+      }
+        `,
         { postId: testData.postId }
       );
 
@@ -1225,12 +1220,12 @@ describe("Resolver Tests", () => {
       const data = await executeQuery(
         `
         query($userId: ULID!) {
-          userFindFirst(where: { id: { eq: $userId } }) {
-            id
-            name
-          }
+        userFindFirst(where: { id: { eq: $userId } }) {
+          id
+          name
         }
-      `,
+      }
+        `,
         { userId: nonExistentId }
       );
 
@@ -1241,20 +1236,20 @@ describe("Resolver Tests", () => {
       const data = await executeQuery(
         `
         query($userId: ULID!) {
-          userFindFirst(where: { id: { eq: $userId } }) {
-            id
-            name
+        userFindFirst(where: { id: { eq: $userId } }) {
+          id
+          name
             posts {
-              id
-              title
-            }
+            id
+            title
+          }
             profile {
-              id
-              bio
-            }
+            id
+            bio
           }
         }
-      `,
+      }
+        `,
         { userId: testData.userId }
       );
 
@@ -1272,24 +1267,24 @@ describe("Resolver Tests", () => {
       const data = await executeQuery(
         `
         query($postId: ULID!) {
-          postFindFirst(where: { id: { eq: $postId } }) {
-            id
-            title
+        postFindFirst(where: { id: { eq: $postId } }) {
+          id
+          title
             author {
+            id
+            name
+          }
+            comments {
+            id
+            text
+              user {
               id
               name
             }
-            comments {
-              id
-              text
-              user {
-                id
-                name
-              }
-            }
           }
         }
-      `,
+      }
+        `,
         { postId: testData.postId }
       );
 
@@ -1305,12 +1300,12 @@ describe("Resolver Tests", () => {
     it("should query findFirst with orderBy", async () => {
       const data = await executeQuery(`
         query {
-          userFindFirst(orderBy: { name: { direction: asc, priority: 1 } }) {
-            id
-            name
-          }
+        userFindFirst(orderBy: { name: { direction: asc, priority: 1 } }) {
+          id
+          name
         }
-      `);
+      }
+        `);
 
       expect(data?.userFindFirst).toBeDefined();
       expect(data?.userFindFirst as any).toHaveProperty("id");
@@ -1321,16 +1316,16 @@ describe("Resolver Tests", () => {
       const data = await executeQuery(
         `
         query($postId: ULID!) {
-          postFindFirst(where: { id: { eq: $postId } }) {
+        postFindFirst(where: { id: { eq: $postId } }) {
+          id
+          title
+          comments(where: { text: { like: "%Test%" } }) {
             id
-            title
-            comments(where: { text: { like: "%Test%" } }) {
-              id
-              text
-            }
+            text
           }
         }
-      `,
+      }
+        `,
         { postId: testData.postId }
       );
 
@@ -1370,16 +1365,16 @@ describe("Resolver Tests", () => {
       const data = await executeQueryWithExport(
         `
         query GetUserPosts($authorId: ULID = "") {
-          user: userFindFirst(where: { email: { eq: "${testData.testEmail}" } }) {
-            id @export(as: "authorId")
+        user: userFindFirst(where: { email: { eq: "${testData.testEmail}" } }) {
+        id @export(as: "authorId")
             name
             email
           }
           posts: postFindMany(where: { authorId: { eq: $authorId } }) {
-            id
+      id
             title
             authorId
-          }
+    }
         }
       `,
         { authorId: "$_authorId" }
@@ -1397,26 +1392,26 @@ describe("Resolver Tests", () => {
       const data = await executeQueryWithExport(
         `
         query GetUserData($userId: ULID = "", $postId: ULID = "") {
-          user: userFindFirst(where: { email: { eq: "${testData.testEmail}" } }) {
-            id @export(as: "userId")
+    user: userFindFirst(where: { email: { eq: "${testData.testEmail}" } }) {
+    id @export(as: "userId")
             name
             posts {
-              id @export(as: "postId")
+    id @export(as: "postId")
               title
             }
           }
-          profile: userProfileFindFirst(where: { userId: { eq: $userId } }) {
-            id
+  profile: userProfileFindFirst(where: { userId: { eq: $userId } }) {
+  id
             bio
             userId
-          }
+}
           comments: commentFindMany(where: { postId: { eq: $postId } }) {
-            id
+  id
             text
             postId
-          }
+}
         }
-      `,
+  `,
         { userId: "$_userId", postId: "$_postId" }
       );
 
@@ -1431,7 +1426,7 @@ describe("Resolver Tests", () => {
     });
 
     it("should work with mutation and variable (requires shared context across requests)", async () => {
-      const newEmail = `export-var-test-${generateUlid()}@example.com`;
+      const newEmail = `export -var-test - ${generateUlid()} @example.com`;
 
       // Create shared context with ExportStore for both operations
       const sharedContext = { exportStore: new ExportStore() };
@@ -1440,16 +1435,16 @@ describe("Resolver Tests", () => {
       const createResult = await executeQueryWithExport(
         `
         mutation CreateUser {
-          newUser: userInsertMany(values: [{ 
-            name: "Variable Export Test", 
-            email: "${newEmail}"
-          }]) {
+  newUser: userInsertMany(values: [{
+    name: "Variable Export Test",
+    email: "${newEmail}"
+  }]) {
             id @export(as: "newUserId")
             name
-            email
-          }
-        }
-      `,
+    email
+  }
+}
+`,
         undefined,
         sharedContext
       );
@@ -1463,13 +1458,13 @@ describe("Resolver Tests", () => {
       const queryResult = await executeQueryWithExport(
         `
         query VerifyUser($userIds: [ULID!]) {
-          verifyUser: userFindFirst(where: { id: { inArray: $userIds } }) {
-            id
-            name
-            email
-          }
-        }
-      `,
+  verifyUser: userFindFirst(where: { id: { inArray: $userIds } }) {
+    id
+    name
+    email
+  }
+}
+`,
         { userIds: "$_newUserId" },
         sharedContext // Reuse the same context!
       );
@@ -1488,21 +1483,21 @@ describe("Resolver Tests", () => {
       const data = await executeQueryWithExport(
         `
         query NestedExport($authorId: ULID = "") {
-          post: postFindFirst(where: { title: { eq: "Test Post" } }) {
-            id
-            title
+  post: postFindFirst(where: { title: { eq: "Test Post" } }) {
+    id
+    title
             author {
               id @export(as: "authorId")
               name
-            }
-          }
-          authorPosts: postFindMany(where: { authorId: { eq: $authorId } }) {
-            id
-            title
-            authorId
-          }
-        }
-      `,
+    }
+  }
+  authorPosts: postFindMany(where: { authorId: { eq: $authorId } }) {
+    id
+    title
+    authorId
+  }
+}
+`,
         { authorId: "$_authorId" }
       );
 
@@ -1522,16 +1517,16 @@ describe("Resolver Tests", () => {
       const data = await executeQueryWithExport(
         `
         query WithNullable($userId: ULID = "") {
-          user: userFindFirst(where: { email: { eq: "${testData.testEmail}" } }) {
+  user: userFindFirst(where: { email: { eq: "${testData.testEmail}" } }) {
             id @export(as: "userId")
             name
-          }
-          posts: postFindMany(where: { authorId: { eq: $userId } }) {
-            id
-            title
-          }
-        }
-      `,
+  }
+  posts: postFindMany(where: { authorId: { eq: $userId } }) {
+    id
+    title
+  }
+}
+`,
         { userId: "$_userId" }
       );
 
@@ -1544,22 +1539,22 @@ describe("Resolver Tests", () => {
       const data = await executeQueryWithExport(
         `
         query SequencedExports($userId: ULID = "", $postId: ULID = "") {
-          step1: userFindFirst(where: { email: { eq: "${testData.testEmail}" } }) {
+  step1: userFindFirst(where: { email: { eq: "${testData.testEmail}" } }) {
             id @export(as: "userId")
             name
-          }
-          step2: postFindFirst(where: { authorId: { eq: $userId } }) {
+  }
+  step2: postFindFirst(where: { authorId: { eq: $userId } }) {
             id @export(as: "postId")
             title
-            authorId
-          }
-          step3: commentFindMany(where: { postId: { eq: $postId } }) {
-            id
-            text
-            postId
-          }
-        }
-      `,
+    authorId
+  }
+  step3: commentFindMany(where: { postId: { eq: $postId } }) {
+    id
+    text
+    postId
+  }
+}
+`,
         { userId: "$_userId", postId: "$_postId" }
       );
 

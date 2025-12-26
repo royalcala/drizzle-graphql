@@ -320,7 +320,7 @@ export const generateTypeDefs = (
     }
 
     // Add _operation field to track operation type
-    fields.push(`  _operation: OPERATION!`);
+    // fields.push(`  _operation: OPERATION!`);
 
     // Add relation fields with arguments
     const tableRelations = relations[tableName];
@@ -428,12 +428,13 @@ export const generateTypeDefs = (
   const allDefs: string[] = [];
 
   // Add OPERATION enum
-  allDefs.push(`enum OPERATION {
-  READ
-  INSERTED
-  UPDATED
-  DELETED
-}`);
+  // Add OPERATION enum
+  // allDefs.push(`enum OPERATION {
+  //   READ
+  //   INSERTED
+  //   UPDATED
+  //   DELETED
+  // }`);
 
   // Add custom scalars
   if (customScalars.size > 0) {
