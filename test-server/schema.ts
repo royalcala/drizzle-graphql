@@ -19,7 +19,9 @@ export const post = sqliteTable("post", {
     .$defaultFn(() => generateUlid()),
   title: text("title").notNull(),
   content: text("content").notNull(),
-  authorId: text("author_id").notNull(),
+  authorId: text("author_id")
+    .notNull()
+    .references(() => user.id),
   name: text("name"),
 });
 
@@ -29,8 +31,12 @@ export const comment = sqliteTable("comment", {
     .$defaultFn(() => generateUlid())
     .notNull(),
   text: text("text").notNull(),
-  postId: text("post_id").notNull(),
-  userId: text("user_id").notNull(),
+  postId: text("post_id")
+    .notNull()
+    .references(() => post.id),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id),
 });
 
 export type ReactionTypes = "LIKE" | "DISLIKE";
@@ -40,8 +46,12 @@ export const reaction = sqliteTable("reaction", {
     .primaryKey()
     .$defaultFn(() => generateUlid())
     .notNull(),
-  commentId: text("comment_id").notNull(),
-  userId: text("user_id").notNull(),
+  commentId: text("comment_id")
+    .notNull()
+    .references(() => comment.id),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id),
   type: text("type").$type<ReactionTypes>().notNull(),
 });
 
@@ -57,42 +67,11 @@ export const userProfile = sqliteTable("user_profile", {
   website: text("website"),
 });
 
-// Mark columns as ULID type for GraphQL with descriptions
-setCustomGraphQL(user, {
-  id: { type: "ULID", description: "Unique identifier for the user" },
-});
-setCustomGraphQL(post, {
-  id: { type: "ULID", description: "Unique identifier for the post" },
-  // authorId: {
-  //   type: "ULID",
-  //   description: "ID of the author who wrote the post",
-  // },
-});
-setCustomGraphQL(comment, {
-  id: { type: "ULID", description: "Unique identifier for the comment" },
-  // postId: {
-  //   type: "ULID",
-  //   description: "ID of the post this comment belongs to",
-  // },
-  // userId: {
-  //   type: "ULID",
-  //   description: "ID of the user who wrote this comment",
-  // },
-});
 setCustomGraphQL(reaction, {
-  id: { type: "ULID", description: "Unique identifier for the reaction" },
-  // commentId: {
-  //   type: "ULID",
-  //   description: "ID of the comment this reaction is on",
-  // },
-  // userId: { type: "ULID", description: "ID of the user who reacted" },
   type: {
     type: "ReactionType",
     description: "Type of reaction: LIKE or DISLIKE",
   },
-});
-setCustomGraphQL(userProfile, {
-  id: { type: "ULID", description: "Unique identifier for the user profile" },
 });
 
 export const userRelations = relations(user, ({ one, many }) => ({

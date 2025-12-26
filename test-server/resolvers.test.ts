@@ -27,24 +27,25 @@ const db = drizzle(client, { schema });
 const { typeDefs, resolvers } = buildSchemaSDL(db);
 
 // Create executable schema
-const customTypeDefinitions = `scalar ULID\nenum ReactionType { LIKE DISLIKE }`;
+const customTypeDefinitions = `enum ReactionType { LIKE DISLIKE }`;
 const extendedTypeDefs = customTypeDefinitions + "\n" + typeDefs;
 
-const customScalarResolvers = { ULID: GraphQLULID };
-const resolversWithScalars = { ...resolvers, ...customScalarResolvers };
+
+const resolversWithScalars = { ...resolvers };
 let executableSchema = makeExecutableSchema({
   typeDefs: extendedTypeDefs,
   resolvers: resolversWithScalars,
 });
 
-// Create FlexibleULID using the new factory function
-const FlexibleULID = makeScalarAcceptExports(GraphQLULID);
+// Create FlexibleID using the new factory function (validates ULID format and supports exports)
+GraphQLULID.name = "ID";
+const ID = makeScalarAcceptExports(GraphQLULID);
 
-// Wrap resolvers with export middleware AND add FlexibleULID scalar
+// Wrap resolvers with export middleware AND add FlexibleID scalar
 const composedResolvers = composeResolvers(
   {
     ...resolvers,
-    ULID: FlexibleULID,
+    ID,
   },
   {
     "*.*": [createExportMiddleware()],
@@ -169,7 +170,7 @@ describe("Resolver Tests", () => {
     it("should query users with where filter", async () => {
       const data = await executeQuery(
         `
-        query($userId: ULID!) {
+        query($userId: ID!) {
         userFindMany(where: { id: { eq: $userId } }) {
           id
           name
@@ -205,7 +206,7 @@ describe("Resolver Tests", () => {
     it("should query posts with where filter", async () => {
       const data = await executeQuery(
         `
-        query($postId: ULID!) {
+        query($postId: ID!) {
       postFindMany(where: { id: { eq: $postId } }) {
         id
         title
@@ -454,7 +455,7 @@ describe("Resolver Tests", () => {
       // Verify deletion
       const checkData = await executeQuery(
         `
-        query($userId: ULID!) {
+        query($userId: ID!) {
           userFindMany(where: { id: { eq: $userId } }) {
             id
           }
@@ -515,7 +516,7 @@ describe("Resolver Tests", () => {
       // Verify deletion
       const checkData = await executeQuery(
         `
-        query($postId: ULID!) {
+        query($postId: ID!) {
           postFindMany(where: { id: { eq: $postId } }) {
             id
           }
@@ -603,7 +604,7 @@ describe("Resolver Tests", () => {
     it("should query user with profile (one-to-one)", async () => {
       const data = await executeQuery(
         `
-        query($userId: ULID!) {
+        query($userId: ID!) {
           userFindMany(where: { id: { eq: $userId } }) {
             id
             name
@@ -632,7 +633,7 @@ describe("Resolver Tests", () => {
     it("should query profile with user (inverse one-to-one)", async () => {
       const data = await executeQuery(
         `
-        query($profileId: ULID!) {
+        query($profileId: ID!) {
           userProfileFindMany(where: { id: { eq: $profileId } }) {
             id
             bio
@@ -658,7 +659,7 @@ describe("Resolver Tests", () => {
     it("should query user with filtered profile that matches", async () => {
       const data = await executeQuery(
         `
-        query($userId: ULID!) {
+        query($userId: ID!) {
           userFindMany(where: { id: { eq: $userId } }) {
             id
             name
@@ -681,7 +682,7 @@ describe("Resolver Tests", () => {
     it("should return null for profile when filter does not match (one-to-one)", async () => {
       const data = await executeQuery(
         `
-        query($userId: ULID!) {
+        query($userId: ID!) {
           userFindMany(where: { id: { eq: $userId } }) {
             id
             name
@@ -722,7 +723,7 @@ describe("Resolver Tests", () => {
       // Query with nested relation
       const data = await executeQuery(
         `
-        query($userId: ULID!) {
+        query($userId: ID!) {
           userFindMany(where: { id: { eq: $userId } }) {
             id
             name
@@ -753,7 +754,7 @@ describe("Resolver Tests", () => {
     it("should query users with nested posts and comments", async () => {
       const data = await executeQuery(
         `
-        query($userId: ULID!) {
+        query($userId: ID!) {
           userFindMany(where: { id: { eq: $userId } }) {
             id
             name
@@ -982,7 +983,7 @@ describe("Resolver Tests", () => {
       // Query with filter on one-to-many relation
       const data = await executeQuery(
         `
-        query($postId: ULID!) {
+        query($postId: ID!) {
           postFindMany(where: { id: { eq: $postId } }) {
             id
             title
@@ -1032,7 +1033,7 @@ describe("Resolver Tests", () => {
       // Query with nested filters on one-to-many relations
       const data = await executeQuery(
         `
-        query($userId: ULID!) {
+        query($userId: ID!) {
           userFindMany(where: { id: { eq: $userId } }) {
             id
             name
@@ -1067,7 +1068,7 @@ describe("Resolver Tests", () => {
     it("should return empty array for comments when filter does not match (one-to-many)", async () => {
       const data = await executeQuery(
         `
-        query($postId: ULID!) {
+        query($postId: ID!) {
           postFindMany(where: { id: { eq: $postId } }) {
             id
             title
@@ -1091,7 +1092,7 @@ describe("Resolver Tests", () => {
     it("should query posts with filtered author relation that matches", async () => {
       const data = await executeQuery(
         `
-        query($postId: ULID!, $userName: String!) {
+        query($postId: ID!, $userName: String!) {
           postFindMany(where: { id: { eq: $postId } }) {
             id
             title
@@ -1115,7 +1116,7 @@ describe("Resolver Tests", () => {
     it("should return null for author when filter does not match", async () => {
       const data = await executeQuery(
         `
-        query($postId: ULID!) {
+        query($postId: ID!) {
           postFindMany(where: { id: { eq: $postId } }) {
             id
             title
@@ -1138,7 +1139,7 @@ describe("Resolver Tests", () => {
     it("should query comments with filtered user and post relations", async () => {
       const data = await executeQuery(
         `
-        query($commentId: ULID!, $userName: String!, $postTitle: String!) {
+        query($commentId: ID!, $userName: String!, $postTitle: String!) {
           commentFindMany(where: { id: { eq: $commentId } }) {
             id
             text
@@ -1226,7 +1227,7 @@ describe("Resolver Tests", () => {
     it("should query single user with findFirst", async () => {
       const data = await executeQuery(
         `
-        query($userId: ULID!) {
+        query($userId: ID!) {
         userFindFirst(where: { id: { eq: $userId } }) {
           id
           name
@@ -1246,7 +1247,7 @@ describe("Resolver Tests", () => {
     it("should query single post with findFirst", async () => {
       const data = await executeQuery(
         `
-        query($postId: ULID!) {
+        query($postId: ID!) {
         postFindFirst(where: { id: { eq: $postId } }) {
           id
           title
@@ -1264,10 +1265,10 @@ describe("Resolver Tests", () => {
     });
 
     it("should return null when no match with findFirst", async () => {
-      const nonExistentId = generateUlid(); // Generate a valid ULID that doesn't exist
+      const nonExistentId = generateUlid(); // Generate a valid ID that doesn't exist
       const data = await executeQuery(
         `
-        query($userId: ULID!) {
+        query($userId: ID!) {
         userFindFirst(where: { id: { eq: $userId } }) {
           id
           name
@@ -1283,7 +1284,7 @@ describe("Resolver Tests", () => {
     it("should query findFirst with relations", async () => {
       const data = await executeQuery(
         `
-        query($userId: ULID!) {
+        query($userId: ID!) {
         userFindFirst(where: { id: { eq: $userId } }) {
           id
           name
@@ -1314,7 +1315,7 @@ describe("Resolver Tests", () => {
     it("should query findFirst with nested relations", async () => {
       const data = await executeQuery(
         `
-        query($postId: ULID!) {
+        query($postId: ID!) {
         postFindFirst(where: { id: { eq: $postId } }) {
           id
           title
@@ -1363,7 +1364,7 @@ describe("Resolver Tests", () => {
     it("should query findFirst with filtered relations", async () => {
       const data = await executeQuery(
         `
-        query($postId: ULID!) {
+        query($postId: ID!) {
         postFindFirst(where: { id: { eq: $postId } }) {
           id
           title
@@ -1389,12 +1390,12 @@ describe("Resolver Tests", () => {
      * ✅ WORKING SOLUTION: Using GraphQL variables with default values
      *
      * Instead of using $_varName directly in the query string, we:
-     * 1. Declare GraphQL variables with FlexibleULID type
+     * 1. Declare GraphQL variables with FlexibleID type
      * 2. Set default values (empty string) to pass validation
      * 3. Let the middleware resolve $_varName patterns in the actual values
      *
      * Example:
-     * query GetPosts($authorId: ULID = "") {
+     * query GetPosts($authorId: ID = "") {
      *   user: userFindFirst(...) {
      *     id @export(as: "authorId")
      *   }
@@ -1404,7 +1405,7 @@ describe("Resolver Tests", () => {
      * Then call with variables: { authorId: "$_authorId" }
      *
      * This works because:
-     * - FlexibleULID type accepts $_varName patterns and empty strings
+     * - FlexibleID type accepts $_varName patterns and empty strings
      * - Default value satisfies parse-time validation
      * - Middleware resolves the pattern at execution time
      */
@@ -1412,7 +1413,7 @@ describe("Resolver Tests", () => {
     it("should export and use value via String variable with default", async () => {
       const data = await executeQueryWithExport(
         `
-        query GetUserPosts($authorId: ULID = "") {
+        query GetUserPosts($authorId: ID = "") {
         user: userFindFirst(where: { email: { eq: "${testData.testEmail}" } }) {
         id @export(as: "authorId")
             name
@@ -1439,7 +1440,7 @@ describe("Resolver Tests", () => {
     it("should handle multiple variables with exports (nested field timing issue)", async () => {
       const data = await executeQueryWithExport(
         `
-        query GetUserData($userId: ULID = "", $postId: ULID = "") {
+        query GetUserData($userId: ID = "", $postId: ID = "") {
     user: userFindFirst(where: { email: { eq: "${testData.testEmail}" } }) {
     id @export(as: "userId")
             name
@@ -1505,7 +1506,7 @@ describe("Resolver Tests", () => {
       // Note: newUserId export is an array (from userInsertMany), so we must accept [ULID]
       const queryResult = await executeQueryWithExport(
         `
-        query VerifyUser($userIds: [ULID!]) {
+        query VerifyUser($userIds: [ID!]) {
   verifyUser: userFindFirst(where: { id: { inArray: $userIds } }) {
     id
     name
@@ -1530,7 +1531,7 @@ describe("Resolver Tests", () => {
     it("should handle nested exports with variables (parallel execution timing)", async () => {
       const data = await executeQueryWithExport(
         `
-        query NestedExport($authorId: ULID = "") {
+        query NestedExport($authorId: ID = "") {
   post: postFindFirst(where: { title: { eq: "Test Post" } }) {
     id
     title
@@ -1564,7 +1565,7 @@ describe("Resolver Tests", () => {
     it("should work with nullable variables", async () => {
       const data = await executeQueryWithExport(
         `
-        query WithNullable($userId: ULID = "") {
+        query WithNullable($userId: ID = "") {
   user: userFindFirst(where: { email: { eq: "${testData.testEmail}" } }) {
             id @export(as: "userId")
             name
@@ -1586,7 +1587,7 @@ describe("Resolver Tests", () => {
     it("should handle complex sequenced queries with variables", async () => {
       const data = await executeQueryWithExport(
         `
-        query SequencedExports($userId: ULID = "", $postId: ULID = "") {
+        query SequencedExports($userId: ID = "", $postId: ID = "") {
   step1: userFindFirst(where: { email: { eq: "${testData.testEmail}" } }) {
             id @export(as: "userId")
             name

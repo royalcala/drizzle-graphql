@@ -28,7 +28,6 @@ const { typeDefs, resolvers } = buildSchemaSDL(db);
 // Add custom scalar/enum definitions for types marked with customGraphqlType
 const customTypeDefinitions = `
 directive @export(as: String!) on FIELD
-scalar ULID
  enum ReactionType {
     LIKE
     DISLIKE
@@ -37,11 +36,12 @@ scalar ULID
 
 const extendedTypeDefs = customTypeDefinitions + "\n" + typeDefs;
 
+GraphQLULID.name = "ID";
 // Add scalar resolvers for custom types
 // Use makeScalarAcceptExports to allow export patterns
 const FlexibleULID = makeScalarAcceptExports(GraphQLULID);
 const customScalarResolvers = {
-  ULID: FlexibleULID,
+  ID: FlexibleULID,
 };
 
 const resolversWithScalars = {
